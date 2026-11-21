@@ -1,0 +1,277 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidClassId(classId) {
+      return classId is string && classId in ['class-6', 'class-7', 'class-8', 'class-9', 'class-10', 'class-11', 'class-12'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email in ['d42653503@gmail.com', 'pradipmallick635343@gmail.com'];
+    }
+
+    function isTeacher() {
+      return isAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/appConfig/public) &&
+        get(/databases/$(database)/documents/appConfig/public).data.teacherUid == request.auth.uid
+      );
+    }
+
+    function isValidPublicConfig(data) {
+      return data.keys().hasAll(['hasPin', 'teacherLoggedIn', 'teacherDeviceId', 'teacherUid', 'updatedAt']) &&
+        data.keys().hasOnly(['hasPin', 'teacherLoggedIn', 'teacherDeviceId', 'teacherUid', 'updatedAt']) &&
+        data.hasPin is bool &&
+        data.teacherLoggedIn is bool &&
+        isValidId(data.teacherDeviceId) &&
+        isValidId(data.teacherUid) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSecurityConfig(data) {
+      return data.keys().hasAll(['pinHash', 'pinSalt', 'teacherUid', 'teacherDeviceId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['pinHash', 'pinSalt', 'teacherUid', 'teacherDeviceId', 'createdAt', 'updatedAt']) &&
+        data.pinHash is string && data.pinHash.size() >= 32 && data.pinHash.size() <= 128 &&
+        data.pinSalt is string && data.pinSalt.size() >= 16 && data.pinSalt.size() <= 128 &&
+        isValidId(data.teacherUid) &&
+        isValidId(data.teacherDeviceId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSubjectChoiceList(listVal) {
+      return listVal is list &&
+        listVal.size() >= 1 &&
+        listVal.size() <= 20 &&
+        listVal[0] is string &&
+        listVal[0].size() >= 1 &&
+        listVal[0].size() <= 128;
+    }
+
+    function isValidAccessRequest(data, pathDeviceId) {
+      return data.keys().hasAll(['deviceId', 'requesterUid', 'teacherUid', 'label', 'requestedClassId', 'userAgent', 'status', 'requestedAt']) &&
+        data.keys().hasOnly(['deviceId', 'requesterUid', 'teacherUid', 'label', 'requestedClassId', 'requestedSubjectIds', 'userAgent', 'status', 'requestedAt']) &&
+        data.deviceId == pathDeviceId &&
+        isValidId(data.deviceId) &&
+        isValidId(data.requesterUid) &&
+        isValidId(data.teacherUid) &&
+        data.label is string && data.label.size() >= 1 && data.label.size() <= 100 &&
+        isValidClassId(data.requestedClassId) &&
+        (!('requestedSubjectIds' in data) || (
+          data.requestedClassId in ['class-11', 'class-12'] &&
+          isValidSubjectChoiceList(data.requestedSubjectIds)
+        )) &&
+        data.userAgent is string && data.userAgent.size() <= 200 &&
+        data.status in ['pending', 'denied'] &&
+        data.requestedAt is timestamp;
+    }
+
+    function isValidPermittedDevice(data, pathDeviceId) {
+      return data.keys().hasAll(['deviceId', 'studentUid', 'teacherUid', 'label', 'permittedClassId', 'approvedAt']) &&
+        data.keys().hasOnly(['deviceId', 'studentUid', 'teacherUid', 'label', 'permittedClassId', 'permittedSubjectIds', 'approvedAt']) &&
+        data.deviceId == pathDeviceId &&
+        isValidId(data.deviceId) &&
+        isValidId(data.studentUid) &&
+        isValidId(data.teacherUid) &&
+        data.label is string && data.label.size() >= 1 && data.label.size() <= 100 &&
+        isValidClassId(data.permittedClassId) &&
+        (!('permittedSubjectIds' in data) || (
+          data.permittedClassId in ['class-11', 'class-12'] &&
+          isValidSubjectChoiceList(data.permittedSubjectIds)
+        )) &&
+        data.approvedAt is timestamp;
+    }
+
+    function isValidSubject(data, pathSubjectId) {
+      return data.keys().hasAll(['id', 'nameBn', 'nameEn', 'code', 'icon', 'color', 'descriptionBn']) &&
+        data.keys().hasOnly(['id', 'nameBn', 'nameEn', 'code', 'icon', 'color', 'descriptionBn', 'isCustom', 'allowedClasses', 'teacherUid']) &&
+        data.id == pathSubjectId &&
+        isValidId(data.id) &&
+        data.nameBn is string && data.nameBn.size() >= 1 && data.nameBn.size() <= 100 &&
+        data.nameEn is string && data.nameEn.size() >= 1 && data.nameEn.size() <= 100 &&
+        data.code is string && data.code.size() >= 1 && data.code.size() <= 20 &&
+        data.icon is string && data.icon.size() >= 1 && data.icon.size() <= 40 &&
+        data.color is string && data.color.size() >= 1 && data.color.size() <= 30 &&
+        data.descriptionBn is string && data.descriptionBn.size() <= 400 &&
+        (!('isCustom' in data) || data.isCustom is bool) &&
+        (!('allowedClasses' in data) || (data.allowedClasses is list && data.allowedClasses.size() <= 10 && (data.allowedClasses.size() == 0 || data.allowedClasses[0] is string))) &&
+        (!('teacherUid' in data) || isValidId(data.teacherUid));
+    }
+
+    function isValidChapter(data, pathChapterId) {
+      return data.keys().hasAll(['id', 'subjectId', 'chapterNumber', 'titleBn', 'summaryBn', 'keyPoints', 'questions', 'pdfFileName', 'uploadedAt', 'teacherUid']) &&
+        data.keys().hasOnly(['id', 'subjectId', 'classLevel', 'chapterNumber', 'titleBn', 'titleEn', 'summaryBn', 'keyPoints', 'questions', 'pdfFileName', 'pdfFileSize', 'pdfData', 'pdfUrl', 'isCustomUploaded', 'uploadedAt', 'teacherUid']) &&
+        data.id == pathChapterId &&
+        isValidId(data.id) &&
+        isValidId(data.subjectId) &&
+        (!('classLevel' in data) || (data.classLevel is string && data.classLevel.size() <= 40)) &&
+        data.chapterNumber is number && data.chapterNumber >= 1 && data.chapterNumber <= 999 &&
+        data.titleBn is string && data.titleBn.size() >= 1 && data.titleBn.size() <= 200 &&
+        (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 200)) &&
+        data.summaryBn is string && data.summaryBn.size() <= 20000 &&
+        data.keyPoints is list && data.keyPoints.size() <= 50 && (data.keyPoints.size() == 0 || data.keyPoints[0] is string) &&
+        data.questions is list && data.questions.size() <= 50 && (data.questions.size() == 0 || data.questions[0] is map) &&
+        data.pdfFileName is string && data.pdfFileName.size() <= 200 &&
+        (!('pdfFileSize' in data) || (data.pdfFileSize is string && data.pdfFileSize.size() <= 40)) &&
+        (!('pdfData' in data) || (data.pdfData is string && data.pdfData.size() <= 900000)) &&
+        (!('pdfUrl' in data) || (data.pdfUrl is string && data.pdfUrl.size() <= 500)) &&
+        (!('isCustomUploaded' in data) || data.isCustomUploaded is bool) &&
+        data.uploadedAt is string && data.uploadedAt.size() <= 40 &&
+        isValidId(data.teacherUid);
+    }
+
+    function isValidPdfFile(data, pathPdfId) {
+      return data.keys().hasAll(['id', 'fileName', 'totalSize', 'totalChunks', 'teacherUid', 'uploadedAt']) &&
+        data.keys().hasOnly(['id', 'fileName', 'totalSize', 'totalChunks', 'teacherUid', 'uploadedAt']) &&
+        data.id == pathPdfId &&
+        isValidId(data.id) &&
+        data.fileName is string && data.fileName.size() >= 1 && data.fileName.size() <= 200 &&
+        data.totalSize is number && data.totalSize > 0 && data.totalSize <= 26214400 &&
+        data.totalChunks is number && data.totalChunks >= 1 && data.totalChunks <= 64 &&
+        isValidId(data.teacherUid) &&
+        data.uploadedAt is timestamp;
+    }
+
+    function isValidPdfChunk(data, pathPdfId) {
+      return data.keys().hasAll(['pdfId', 'chunkIndex', 'data', 'teacherUid']) &&
+        data.keys().hasOnly(['pdfId', 'chunkIndex', 'data', 'teacherUid']) &&
+        data.pdfId == pathPdfId &&
+        isValidId(data.pdfId) &&
+        data.chunkIndex is number && data.chunkIndex >= 0 && data.chunkIndex <= 63 &&
+        data.data is string && data.data.size() >= 1 && data.data.size() <= 750000 &&
+        isValidId(data.teacherUid);
+    }
+
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    match /appConfig/public {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidPublicConfig(incoming()) &&
+        incoming().teacherUid == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        !exists(/databases/$(database)/documents/appConfig/security);
+      allow update: if isSignedIn() &&
+        isValidPublicConfig(incoming()) &&
+        incoming().updatedAt == request.time &&
+        (isAdmin() || existing().teacherUid == request.auth.uid);
+    }
+
+    match /appConfig/security {
+      allow get: if isSignedIn() && (resource == null || isAdmin() || resource.data.teacherUid == request.auth.uid);
+      allow create: if isSignedIn() &&
+        isValidSecurityConfig(incoming()) &&
+        incoming().teacherUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidSecurityConfig(incoming()) &&
+        (isAdmin() || existing().teacherUid == request.auth.uid) &&
+        incoming().teacherUid == existing().teacherUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time;
+    }
+
+    match /accessRequests/{deviceId} {
+      allow get: if isSignedIn() && isValidId(deviceId) && (resource == null || isTeacher() || resource.data.requesterUid == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.teacherUid == request.auth.uid || resource.data.requesterUid == request.auth.uid);
+      allow create: if isSignedIn() &&
+        isValidId(deviceId) &&
+        isValidAccessRequest(incoming(), deviceId) &&
+        incoming().requesterUid == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().requestedAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidId(deviceId) &&
+        isValidAccessRequest(incoming(), deviceId) &&
+        incoming().requesterUid == existing().requesterUid &&
+        incoming().deviceId == existing().deviceId &&
+        (
+          (existing().requesterUid == request.auth.uid &&
+            incoming().status == 'pending' &&
+            incoming().requestedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['label', 'requestedClassId', 'requestedSubjectIds', 'userAgent', 'status', 'requestedAt', 'teacherUid'])) ||
+          (isTeacher() &&
+            incoming().status == 'denied' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+        );
+      allow delete: if isSignedIn() && isValidId(deviceId) && (isTeacher() || resource.data.requesterUid == request.auth.uid);
+    }
+
+    match /permittedDevices/{deviceId} {
+      allow get: if isSignedIn() && isValidId(deviceId) && (resource == null || isAdmin() || resource.data.teacherUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.teacherUid == request.auth.uid || resource.data.studentUid == request.auth.uid);
+      allow create: if isTeacher() &&
+        isValidId(deviceId) &&
+        isValidPermittedDevice(incoming(), deviceId) &&
+        incoming().approvedAt == request.time;
+      allow update: if isTeacher() &&
+        isValidId(deviceId) &&
+        isValidPermittedDevice(incoming(), deviceId) &&
+        incoming().deviceId == existing().deviceId &&
+        incoming().studentUid == existing().studentUid &&
+        incoming().teacherUid == existing().teacherUid &&
+        incoming().approvedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['permittedClassId', 'permittedSubjectIds', 'label', 'approvedAt']);
+      allow delete: if isTeacher() && isValidId(deviceId);
+    }
+
+    match /subjects/{subjectId} {
+      allow get: if isSignedIn() && isValidId(subjectId);
+      allow list: if isSignedIn();
+      allow create, update: if isTeacher() && isValidId(subjectId) && isValidSubject(incoming(), subjectId);
+      allow delete: if isTeacher() && isValidId(subjectId);
+    }
+
+    match /chapters/{chapterId} {
+      allow get: if isSignedIn() && isValidId(chapterId);
+      allow list: if isSignedIn();
+      allow create, update: if isTeacher() && isValidId(chapterId) && isValidChapter(incoming(), chapterId);
+      allow delete: if isTeacher() && isValidId(chapterId);
+    }
+
+    match /pdfFiles/{pdfId} {
+      allow get: if isSignedIn() && isValidId(pdfId);
+      allow create, update: if isTeacher() &&
+        isValidId(pdfId) &&
+        isValidPdfFile(incoming(), pdfId) &&
+        (isAdmin() || incoming().teacherUid == request.auth.uid) &&
+        incoming().uploadedAt == request.time;
+      allow delete: if isTeacher() && isValidId(pdfId);
+
+      match /chunks/{chunkId} {
+        allow get: if isSignedIn() && isValidId(pdfId) && isValidId(chunkId);
+        allow create, update: if isTeacher() &&
+          isValidId(pdfId) &&
+          isValidId(chunkId) &&
+          isValidPdfChunk(incoming(), pdfId) &&
+          (isAdmin() || incoming().teacherUid == request.auth.uid) &&
+          exists(/databases/$(database)/documents/pdfFiles/$(pdfId)) &&
+          get(/databases/$(database)/documents/pdfFiles/$(pdfId)).data.teacherUid == incoming().teacherUid;
+        allow delete: if isTeacher() && isValidId(pdfId) && isValidId(chunkId);
+      }
+    }
+  }
+}

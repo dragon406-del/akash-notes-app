@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  body {
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Custom horizontal scrollbars for clean touch-friendly scrolling */
+.smooth-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on mobile browsers while keeping horizontal scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Disable text selection and iOS/Android long-press save menus on protected student content */
+.protected-content {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.app-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.app-protected input,
+body.app-protected textarea,
+body.app-protected select {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+/* Blank out printed output / Save-as-PDF for all app screens */
+@media print {
+  body.app-protected > * {
+    display: none !important;
+  }
+
+  body.app-protected::after {
+    content: "নিরাপত্তার কারণে প্রিন্ট করা বন্ধ রাখা হয়েছে। অনুগ্রহ করে অ্যাপের ভেতর থেকে নোটস পড়ো।";
+    display: block;
+    padding: 3rem 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    text-align: center;
+    color: #0f172a;
+  }
+}
+
+@keyframes book-blink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.15;
+    transform: scale(0.94);
+  }
+}
+
+.animate-book-blink {
+  animation: book-blink 0.9s ease-in-out infinite;
+}
+

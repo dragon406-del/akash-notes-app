@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix আকাশ স্যারের নোটস - Akash Sirer Notes",
+  "description": "একটি দ্রুত ও অফলাইন স্টাডি অ্যাপ যেখানে শিক্ষার্থীরা আকাশ স্যারের আপলোড করা বিষয়ভিত্তিক নোটস ও পিডিএফ পড়তে ও ডাউনলোড করতে পারে।",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

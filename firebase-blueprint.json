@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "AppPublicConfig": {
+      "title": "AppPublicConfig",
+      "description": "Public teacher mode status and active teacher device identifier.",
+      "type": "object",
+      "properties": {
+        "hasPin": { "type": "boolean", "description": "Whether the teacher PIN has been configured." },
+        "teacherLoggedIn": { "type": "boolean", "description": "Whether teacher mode is currently active." },
+        "teacherDeviceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["hasPin", "teacherLoggedIn", "teacherDeviceId", "teacherUid", "updatedAt"]
+    },
+    "AppSecurityConfig": {
+      "title": "AppSecurityConfig",
+      "description": "Protected teacher PIN hash and salt configuration.",
+      "type": "object",
+      "properties": {
+        "pinHash": { "type": "string", "minLength": 32, "maxLength": 128 },
+        "pinSalt": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "teacherDeviceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["pinHash", "pinSalt", "teacherUid", "teacherDeviceId", "createdAt", "updatedAt"]
+    },
+    "AccessRequest": {
+      "title": "AccessRequest",
+      "description": "Student device permission request sent to the teacher device.",
+      "type": "object",
+      "properties": {
+        "deviceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "requesterUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "requestedClassId": {
+          "type": "string",
+          "enum": ["class-6", "class-7", "class-8", "class-9", "class-10", "class-11", "class-12"],
+          "description": "Class level selected by the student when requesting access."
+        },
+        "requestedSubjectIds": {
+          "type": "array",
+          "description": "Subject IDs chosen by Class 11 or 12 students when requesting access."
+        },
+        "userAgent": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["pending", "denied"] },
+        "requestedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["deviceId", "requesterUid", "teacherUid", "label", "requestedClassId", "userAgent", "status", "requestedAt"]
+    },
+    "PermittedDevice": {
+      "title": "PermittedDevice",
+      "description": "Approved student device that can access only the teacher-permitted class and subject notes.",
+      "type": "object",
+      "properties": {
+        "deviceId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "permittedClassId": {
+          "type": "string",
+          "enum": ["class-6", "class-7", "class-8", "class-9", "class-10", "class-11", "class-12"],
+          "description": "Class level permitted by the teacher for this student device."
+        },
+        "permittedSubjectIds": {
+          "type": "array",
+          "description": "Subject IDs permitted by the teacher for Class 11 or 12 student devices."
+        },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["deviceId", "studentUid", "teacherUid", "label", "permittedClassId", "approvedAt"]
+    },
+    "SubjectItem": {
+      "title": "SubjectItem",
+      "description": "Academic subject scoped to selected class levels.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nameBn": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "nameEn": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 20 },
+        "icon": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "color": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "descriptionBn": { "type": "string", "maxLength": 400 },
+        "isCustom": { "type": "boolean" },
+        "allowedClasses": { "type": "array", "description": "Optional list of allowed class IDs." },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" }
+      },
+      "required": ["id", "nameBn", "nameEn", "code", "icon", "color", "descriptionBn"]
+    },
+    "ChapterNote": {
+      "title": "ChapterNote",
+      "description": "Study chapter note and optional PDF attachment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "subjectId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "classLevel": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "chapterNumber": { "type": "number" },
+        "titleBn": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "titleEn": { "type": "string", "maxLength": 200 },
+        "summaryBn": { "type": "string", "maxLength": 20000 },
+        "keyPoints": { "type": "array" },
+        "questions": { "type": "array" },
+        "pdfFileName": { "type": "string", "maxLength": 200 },
+        "pdfFileSize": { "type": "string", "maxLength": 40 },
+        "pdfData": { "type": "string", "maxLength": 900000 },
+        "pdfUrl": { "type": "string", "maxLength": 500 },
+        "isCustomUploaded": { "type": "boolean" },
+        "uploadedAt": { "type": "string", "maxLength": 40 },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" }
+      },
+      "required": ["id", "subjectId", "chapterNumber", "titleBn", "summaryBn", "keyPoints", "questions", "pdfFileName", "uploadedAt", "teacherUid"]
+    },
+    "PdfFileMeta": {
+      "title": "PdfFileMeta",
+      "description": "Metadata for a persistent chunked PDF stored in Firestore.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "fileName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "totalSize": { "type": "number" },
+        "totalChunks": { "type": "number" },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uploadedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "fileName", "totalSize", "totalChunks", "teacherUid", "uploadedAt"]
+    },
+    "PdfFileChunk": {
+      "title": "PdfFileChunk",
+      "description": "Base64 slice of a persistent PDF file stored under /pdfFiles/{pdfId}/chunks.",
+      "type": "object",
+      "properties": {
+        "pdfId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "chunkIndex": { "type": "number" },
+        "data": { "type": "string", "minLength": 1, "maxLength": 750000 },
+        "teacherUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" }
+      },
+      "required": ["pdfId", "chunkIndex", "data", "teacherUid"]
+    }
+  },
+  "firestore": {
+    "/appConfig/public": {
+      "schema": { "$ref": "#/entities/AppPublicConfig" },
+      "description": "Public teacher session lock and PIN existence flag."
+    },
+    "/appConfig/security": {
+      "schema": { "$ref": "#/entities/AppSecurityConfig" },
+      "description": "Private teacher PIN hash and salt."
+    },
+    "/accessRequests/{deviceId}": {
+      "schema": { "$ref": "#/entities/AccessRequest" },
+      "description": "Pending or denied student device access requests."
+    },
+    "/permittedDevices/{deviceId}": {
+      "schema": { "$ref": "#/entities/PermittedDevice" },
+      "description": "Devices granted persistent permission by the teacher."
+    },
+    "/subjects/{subjectId}": {
+      "schema": { "$ref": "#/entities/SubjectItem" },
+      "description": "Class-scoped study subjects."
+    },
+    "/chapters/{chapterId}": {
+      "schema": { "$ref": "#/entities/ChapterNote" },
+      "description": "Teacher uploaded study notes and PDFs."
+    },
+    "/pdfFiles/{pdfId}": {
+      "schema": { "$ref": "#/entities/PdfFileMeta" },
+      "description": "Metadata for persistent PDF files."
+    },
+    "/pdfFiles/{pdfId}/chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/PdfFileChunk" },
+      "description": "Ordered binary chunks for persistent PDF files."
+    }
+  }
+}
