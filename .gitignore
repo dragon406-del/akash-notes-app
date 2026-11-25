@@ -7,3 +7,10 @@ coverage/
 .env*
 !.env.example
 .data/
+
+# Private Android signing files
+signing-backup/
+*.jks
+*.keystore
+*.p12
+android/app/release-key.jks
